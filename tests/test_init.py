@@ -27,6 +27,10 @@ def mock_connection() -> MagicMock:
     avr.protocol.connected = True
     avr.protocol.zones = {1: zone}
     avr.protocol.input_list = ["HDMI 1", "HDMI 2"]
+    avr.protocol.support_audio_listening_mode = True
+    avr.protocol.audio_listening_mode = "02"
+    avr.protocol.audio_listening_mode_list = ["None", "AnthemLogic Cinema", "AnthemLogic Music"]
+    avr.protocol._alm_number = {"None": 0, "AnthemLogic Cinema": 1, "AnthemLogic Music": 2}
     avr.protocol.swversion = "1.2.3"
     avr.protocol.hwversion = "A1"
     avr.protocol.wait_for_device_initialised = AsyncMock()

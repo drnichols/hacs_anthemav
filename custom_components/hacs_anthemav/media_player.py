@@ -147,6 +147,12 @@ class AnthemAVR(AnthemavEntity, MediaPlayerEntity):
         self._attr_unique_id = (
             f"{mac_address}_{zone_number}" if zone_number > 1 else mac_address
         )
+        # The listening mode is a zone 1 setting and not every model has one.
+        self._has_sound_mode = zone_number == 1 and bool(
+            avr.support_audio_listening_mode
+        )
+        if self._has_sound_mode:
+            self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOUND_MODE
         self._attr_device_info = zone_device_info(
             hass, avr, name, mac_address, model, zone_number, entry_id
         )
@@ -183,7 +189,24 @@ class AnthemAVR(AnthemavEntity, MediaPlayerEntity):
         self._attr_app_name = self._zone.input_format
         self._attr_source = self._zone.input_name
         self._attr_source_list = self.avr.input_list
+        if self._has_sound_mode:
+            self._attr_sound_mode_list = self.avr.audio_listening_mode_list
+            self._attr_sound_mode = self._current_sound_mode()
         self._apply_source_player()
+
+    def _current_sound_mode(self) -> str | None:
+        """Return the active listening mode name, or None if not yet reported.
+
+        The library's text lookup uses the x20 numbering, which names modes
+        wrongly on x40 models, so map the raw number through the model's own
+        mode list instead.
+        """
+        try:
+            number = int(self.avr.audio_listening_mode)
+        except (TypeError, ValueError):
+            return None
+        modes = getattr(self.avr, "_alm_number", {})
+        return next((name for name, value in modes.items() if value == number), None)
 
     def _apply_source_player(self) -> None:
         """Mirror now-playing details from the player mapped to this source."""
@@ -235,6 +258,11 @@ class AnthemAVR(AnthemavEntity, MediaPlayerEntity):
     async def async_select_source(self, source: str) -> None:
         """Change AVR to the designated source (by name)."""
         self._zone.input_name = source
+
+    @override
+    async def async_select_sound_mode(self, sound_mode: str) -> None:
+        """Change the audio listening mode (by name)."""
+        self.avr.audio_listening_mode_text = sound_mode
 
     @override
     async def async_turn_off(self) -> None:
