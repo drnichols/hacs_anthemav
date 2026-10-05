@@ -21,6 +21,7 @@ from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import ANTHEMAV_UPDATE_SIGNAL, DEVICE_TIMEOUT_SECONDS, DOMAIN, MANUFACTURER
+from .entity import device_versions
 from .protocol import NotifyingAVR
 
 type AnthemavConfigEntry = ConfigEntry[anthemav.Connection]
@@ -37,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> 
     def async_anthemav_update_callback(message: str) -> None:
         """Receive notification from transport that new data exists."""
         _LOGGER.debug("Received update callback from AVR: %s", message)
+        _async_sync_device_versions(hass, entry)
         async_dispatcher_send(hass, f"{ANTHEMAV_UPDATE_SIGNAL}_{entry.entry_id}")
 
     try:
@@ -81,6 +83,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> 
     )
 
     return True
+
+
+@callback
+def _async_sync_device_versions(hass: HomeAssistant, entry: AnthemavConfigEntry) -> None:
+    """Record the software and hardware versions once the receiver reports them.
+
+    These arrive after the device is initialised, so they cannot be set when the
+    device is first registered.
+    """
+    avr = getattr(entry, "runtime_data", None)
+    if avr is None:
+        return
+    versions = {k: v for k, v in device_versions(avr.protocol).items() if v}
+    if not versions:
+        return
+    registry = dr.async_get(hass)
+    device = registry.async_get_device(identifiers={(DOMAIN, entry.data[CONF_MAC])})
+    if device and any(getattr(device, k) != v for k, v in versions.items()):
+        registry.async_update_device(device.id, **versions)
 
 
 async def _async_reload_on_update(hass: HomeAssistant, entry: AnthemavConfigEntry) -> None:

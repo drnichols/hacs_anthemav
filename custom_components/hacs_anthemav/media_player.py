@@ -36,21 +36,16 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AnthemavConfigEntry
 from .const import (
-    ANTHEMAV_UPDATE_SIGNAL,
     CONF_APP_NAME_FORMAT,
     CONF_SOURCE_PLAYERS,
     DEFAULT_APP_NAME_FORMAT,
-    DOMAIN,
-    MANUFACTURER,
 )
+from .entity import AnthemavEntity, zone_device_info
 from .protocol import NotifyingAVR
 
 _LOGGER = logging.getLogger(__name__)
@@ -116,12 +111,10 @@ async def async_setup_entry(
     )
 
 
-class AnthemAVR(MediaPlayerEntity):
+class AnthemAVR(AnthemavEntity, MediaPlayerEntity):
     """Entity reading values from Anthem AVR protocol."""
 
-    _attr_has_entity_name = True
     _attr_name = None
-    _attr_should_poll = False
     _attr_device_class = MediaPlayerDeviceClass.RECEIVER
     _attr_supported_features = (
         MediaPlayerEntityFeature.VOLUME_SET
@@ -145,53 +138,25 @@ class AnthemAVR(MediaPlayerEntity):
         app_name_format: str = DEFAULT_APP_NAME_FORMAT,
     ) -> None:
         """Initialize entity with transport."""
-        super().__init__()
-        self.avr = avr
-        self._entry_id = entry_id
+        super().__init__(avr, entry_id)
         self._source_players = dict(source_players or {})
         self._app_name_format = app_name_format
         self._mirror_entity_id: str | None = None
         self._zone_number = zone_number
         self._zone = avr.zones[zone_number]
-        if zone_number > 1:
-            unique_id = f"{mac_address}_{zone_number}"
-            self._attr_unique_id = unique_id
-            self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, unique_id)},
-                name=f"Zone {zone_number}",
-                manufacturer=MANUFACTURER,
-                model=model,
-                via_device_id=dr.async_get_device_id_by_identifier(
-                    hass,
-                    (DOMAIN, mac_address),
-                    config_entry_id=entry_id,
-                ),
-            )
-        else:
-            # Zone 1 is the physical receiver that owns the network MAC; higher
-            # zones are via_device children and carry no connection.
-            self._attr_unique_id = mac_address
-            self._attr_device_info = DeviceInfo(
-                identifiers={(DOMAIN, mac_address)},
-                connections={(CONNECTION_NETWORK_MAC, mac_address)},
-                name=name,
-                manufacturer=MANUFACTURER,
-                model=model,
-            )
+        self._attr_unique_id = (
+            f"{mac_address}_{zone_number}" if zone_number > 1 else mac_address
+        )
+        self._attr_device_info = zone_device_info(
+            hass, avr, name, mac_address, model, zone_number, entry_id
+        )
         self.set_states()
 
     @override
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         # hass is unset during __init__, so mirror the mapped player now.
-        self.set_states()
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{ANTHEMAV_UPDATE_SIGNAL}_{self._entry_id}",
-                self.update_states,
-            )
-        )
+        await super().async_added_to_hass()
         if self._source_players:
             self.async_on_remove(
                 async_track_state_change_event(
@@ -206,15 +171,9 @@ class AnthemAVR(MediaPlayerEntity):
         """Refresh when a mapped media player changes."""
         self.update_states()
 
-    @callback
-    def update_states(self) -> None:
-        """Update states for the current zone."""
-        self.set_states()
-        self.async_write_ha_state()
-
     def set_states(self) -> None:
         """Set all the states from the device to the entity."""
-        self._attr_available = self.avr.connected
+        super().set_states()
         self._attr_state = (
             MediaPlayerState.ON if self._zone.power else MediaPlayerState.OFF
         )
