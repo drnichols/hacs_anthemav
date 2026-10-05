@@ -12,6 +12,10 @@ It is a packaged copy of the core [`anthemav`](https://www.home-assistant.io/int
 - Local push: the receiver sends updates, nothing is polled
 - Zone 1 is the receiver device. Zones 2 and above appear as child devices of it.
 
+## Requirements
+
+Home Assistant **2026.2.3** or newer (the version this integration has been tested against).
+
 ## Installation
 
 ### HACS (custom repository)
