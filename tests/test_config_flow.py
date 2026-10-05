@@ -191,6 +191,21 @@ async def test_options_flow_saves_source_players(hass: HomeAssistant) -> None:
     }
 
 
+async def test_options_form_keeps_help_placeholders_literal(hass: HomeAssistant) -> None:
+    """The frontend must not treat {format} etc. in the help text as variables."""
+    from .test_init import mock_connection, setup_entry
+
+    entry, _ = await setup_entry(hass, mock_connection())
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["description_placeholders"] == {
+        "format": "{format}",
+        "app": "{app}",
+        "source": "{source}",
+        "artist": "{artist}",
+    }
+
+
 async def test_options_flow_aborts_when_not_loaded(hass: HomeAssistant) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id="x", data={})
     entry.add_to_hass(hass)

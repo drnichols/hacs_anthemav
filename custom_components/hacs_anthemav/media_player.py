@@ -154,7 +154,7 @@ class AnthemAVR(AnthemavEntity, MediaPlayerEntity):
         if self._has_sound_mode:
             self._attr_supported_features |= MediaPlayerEntityFeature.SELECT_SOUND_MODE
         self._attr_device_info = zone_device_info(
-            hass, avr, name, mac_address, model, zone_number, entry_id
+            avr, name, mac_address, model, zone_number
         )
         self.set_states()
 
