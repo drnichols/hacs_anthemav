@@ -1,0 +1,13 @@
+{
+  "domain": "hacs_anthemav",
+  "name": "Anthem A/V Receivers (HACS)",
+  "codeowners": ["@drnichols"],
+  "config_flow": true,
+  "documentation": "https://github.com/drnichols/hacs_anthemav",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/drnichols/hacs_anthemav/issues",
+  "loggers": ["anthemav"],
+  "requirements": ["anthemav==1.4.2"],
+  "version": "1.0.0"
+}
