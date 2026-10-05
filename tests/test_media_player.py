@@ -7,14 +7,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.hacs_anthemav.const import CONF_SOURCE_PLAYERS, DOMAIN
+from custom_components.hacs_anthemav.const import (
+    CONF_APP_NAME_FORMAT,
+    CONF_SOURCE_PLAYERS,
+    DOMAIN,
+)
+from custom_components.hacs_anthemav.media_player import render_app_name
 
 from .test_init import MAC, entity_id, mock_connection
 
 SOURCE = "media_player.lounge"
 
 
-async def setup_mapped(hass: HomeAssistant, avr, mapping=None):
+async def setup_mapped(hass: HomeAssistant, avr, mapping=None, extra_options=None):
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=MAC,
@@ -25,7 +30,7 @@ async def setup_mapped(hass: HomeAssistant, avr, mapping=None):
             CONF_MAC: MAC,
             CONF_MODEL: "MRX 540",
         },
-        options={CONF_SOURCE_PLAYERS: mapping or {"ATV": SOURCE}},
+        options={CONF_SOURCE_PLAYERS: mapping or {"ATV": SOURCE}, **(extra_options or {})},
     )
     entry.add_to_hass(hass)
     with patch("anthemav.Connection.create", AsyncMock(return_value=avr)):
@@ -171,3 +176,72 @@ async def test_options_change_reloads_entry(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
     create.assert_awaited_once()
     assert er.async_get(hass).async_get_entity_id("media_player", DOMAIN, MAC)
+
+
+VALUES = {"format": "4K Multi PCM", "app": "YouTube", "source": "ATV", "artist": ""}
+
+
+def test_render_app_name_combines_format_and_app() -> None:
+    assert render_app_name("{format} - {app}", VALUES) == "4K Multi PCM - YouTube"
+
+
+def test_render_app_name_drops_missing_values_and_separators() -> None:
+    assert render_app_name("{format} - {app}", {**VALUES, "app": ""}) == "4K Multi PCM"
+    assert render_app_name("{app} | {format}", {**VALUES, "app": ""}) == "4K Multi PCM"
+
+
+def test_render_app_name_custom_format() -> None:
+    assert (
+        render_app_name("{source}: {app} ({format})", VALUES)
+        == "ATV: YouTube (4K Multi PCM)"
+    )
+
+
+def test_render_app_name_empty_result_is_empty() -> None:
+    assert render_app_name("{artist}", VALUES) == ""
+
+
+async def test_app_name_combines_format_and_mapped_app(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    zone = avr.protocol.zones[1]
+    zone.input_name = "ATV"
+    zone.input_format = "4K Multi PCM"
+    hass.states.async_set(SOURCE, "playing", playing(app_name="YouTube"))
+    await setup_mapped(hass, avr)
+
+    assert hass.states.get(entity_id(hass)).attributes["app_name"] == "4K Multi PCM - YouTube"
+
+
+async def test_app_name_without_mapped_app_is_format_only(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    zone = avr.protocol.zones[1]
+    zone.input_name = "ATV"
+    zone.input_format = "4K Multi PCM"
+    hass.states.async_set(SOURCE, "playing", playing())
+    await setup_mapped(hass, avr)
+
+    assert hass.states.get(entity_id(hass)).attributes["app_name"] == "4K Multi PCM"
+
+
+async def test_app_name_uses_configured_format(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    zone = avr.protocol.zones[1]
+    zone.input_name = "ATV"
+    zone.input_format = "PCM"
+    hass.states.async_set(SOURCE, "playing", playing(app_name="YouTube"))
+    await setup_mapped(
+        hass, avr, extra_options={CONF_APP_NAME_FORMAT: "{app} via {source} ({format})"}
+    )
+
+    assert hass.states.get(entity_id(hass)).attributes["app_name"] == "YouTube via ATV (PCM)"
+
+
+async def test_app_name_falls_back_to_format_when_player_off(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    zone = avr.protocol.zones[1]
+    zone.input_name = "ATV"
+    zone.input_format = "4K Multi PCM"
+    hass.states.async_set(SOURCE, "off", {"app_name": "YouTube"})
+    await setup_mapped(hass, avr)
+
+    assert hass.states.get(entity_id(hass)).attributes["app_name"] == "4K Multi PCM"

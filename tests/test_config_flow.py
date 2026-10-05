@@ -176,7 +176,7 @@ async def test_options_flow_saves_source_players(hass: HomeAssistant) -> None:
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "init"
-    assert {str(k) for k in result["data_schema"].schema} == {"HDMI 1", "HDMI 2"}
+    assert {str(k) for k in result["data_schema"].schema} == {"HDMI 1", "HDMI 2", "app_name_format"}
 
     with patch("anthemav.Connection.create", AsyncMock(return_value=mock_connection())):
         result = await hass.config_entries.options.async_configure(
@@ -185,7 +185,10 @@ async def test_options_flow_saves_source_players(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {"source_players": {"HDMI 1": "media_player.lounge"}}
+    assert entry.options == {
+        "source_players": {"HDMI 1": "media_player.lounge"},
+        "app_name_format": "{format} - {app}",
+    }
 
 
 async def test_options_flow_aborts_when_not_loaded(hass: HomeAssistant) -> None:
@@ -195,3 +198,49 @@ async def test_options_flow_aborts_when_not_loaded(hass: HomeAssistant) -> None:
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "not_loaded"
+
+
+async def test_options_flow_saves_custom_format(hass: HomeAssistant) -> None:
+    from .test_init import mock_connection, setup_entry
+
+    entry, _ = await setup_entry(hass, mock_connection())
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with patch("anthemav.Connection.create", AsyncMock(return_value=mock_connection())):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"app_name_format": "{app} / {format}"}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options["app_name_format"] == "{app} / {format}"
+    assert entry.options["source_players"] == {}
+
+
+async def test_options_flow_rejects_invalid_format(hass: HomeAssistant) -> None:
+    from .test_init import mock_connection, setup_entry
+
+    entry, _ = await setup_entry(hass, mock_connection())
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    for bad in ("{nope}", "{format", "{format.upper}"):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"app_name_format": bad}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {"app_name_format": "invalid_format"}
+
+
+async def test_options_flow_blank_format_uses_default(hass: HomeAssistant) -> None:
+    from .test_init import mock_connection, setup_entry
+
+    entry, _ = await setup_entry(hass, mock_connection())
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with patch("anthemav.Connection.create", AsyncMock(return_value=mock_connection())):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"app_name_format": "  "}
+        )
+        await hass.async_block_till_done()
+
+    assert entry.options["app_name_format"] == "{format} - {app}"

@@ -32,8 +32,17 @@
     "step": {
       "init": {
         "title": "Now playing sources",
-        "description": "For each receiver input, optionally choose a media player (e.g. an Apple TV) to show now-playing details and cover art while that input is selected. Leave blank to use the default."
+        "description": "For each receiver input, optionally choose a media player (e.g. an Apple TV) to show now-playing details and cover art while that input is selected. Leave blank to use the default.",
+        "data": {
+          "app_name_format": "Secondary line format"
+        },
+        "data_description": {
+          "app_name_format": "Shown under the title while a mapped player is active. Placeholders: {format} receiver input format (e.g. 4K Multi PCM), {app} the player's app (e.g. YouTube), {source} input name, {artist} the player's artist. Default: {format} - {app}"
+        }
       }
+    },
+    "error": {
+      "invalid_format": "Use only {format}, {app}, {source} and {artist}, with matched braces"
     }
   }
 }

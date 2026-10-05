@@ -41,7 +41,7 @@ The receiver must be powered on during setup so its MAC address and model can be
 
 ## Now playing from another media player
 
-Many inputs (e.g. an Apple TV) only tell the receiver the input name. To show real now-playing details and cover art, open the integration's **Configure** dialog and pick a media player for each input, such as `media_player.lounge` for `ATV`. While that input is selected, the receiver entity mirrors the title, artist, album, duration, position and artwork from that player. If the player is off, idle or unavailable, the entity shows the input name as before. This is display only; playback controls stay on the source player.
+Many inputs (e.g. an Apple TV) only tell the receiver the input name. To show real now-playing details and cover art, open the integration's **Configure** dialog and pick a media player for each input, such as `media_player.lounge` for `ATV`. While that input is selected, the receiver entity mirrors the title, artist, album, duration, position and artwork from that player. If the player is off, idle or unavailable, the entity shows the input name as before. The text under the title is configurable with **Secondary line format** (default `{format} - {app}`, e.g. `4K Multi PCM - YouTube`). Placeholders: `{format}` (the receiver's input format), `{app}` (the player's app name), `{source}` (the input name) and `{artist}` (the player's artist). Home Assistant shows the artist there instead when the player reports one. This is display only; playback controls stay on the source player.
 
 ## Changing the receiver's address
 

@@ -3,10 +3,12 @@
 from collections.abc import Mapping
 import hashlib
 import logging
+import re
 from typing import Any, override
 from urllib.parse import parse_qs, urlsplit
 
 from homeassistant.components.media_player import (
+    ATTR_APP_NAME,
     DATA_COMPONENT,
     ATTR_MEDIA_ALBUM_ARTIST,
     ATTR_MEDIA_ALBUM_NAME,
@@ -41,7 +43,14 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AnthemavConfigEntry
-from .const import ANTHEMAV_UPDATE_SIGNAL, CONF_SOURCE_PLAYERS, DOMAIN, MANUFACTURER
+from .const import (
+    ANTHEMAV_UPDATE_SIGNAL,
+    CONF_APP_NAME_FORMAT,
+    CONF_SOURCE_PLAYERS,
+    DEFAULT_APP_NAME_FORMAT,
+    DOMAIN,
+    MANUFACTURER,
+)
 from .protocol import NotifyingAVR
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +71,12 @@ MIRRORED_ATTRS = {
     ATTR_MEDIA_POSITION_UPDATED_AT: "_attr_media_position_updated_at",
 }
 INACTIVE_STATES = {STATE_OFF, STATE_IDLE, STATE_UNAVAILABLE, STATE_UNKNOWN}
+
+
+def render_app_name(template: str, values: Mapping[str, str]) -> str:
+    """Fill the format placeholders and tidy separators left by empty values."""
+    text = re.sub(r"\s+", " ", template.format_map(values))
+    return text.strip(" -\u2013|\u2022\u00b7,:")
 
 
 def _picture_hash(picture: str) -> str:
@@ -95,6 +110,7 @@ async def async_setup_entry(
             zone_number,
             config_entry.entry_id,
             config_entry.options.get(CONF_SOURCE_PLAYERS, {}),
+            config_entry.options.get(CONF_APP_NAME_FORMAT) or DEFAULT_APP_NAME_FORMAT,
         )
         for zone_number in avr.protocol.zones
     )
@@ -126,12 +142,14 @@ class AnthemAVR(MediaPlayerEntity):
         zone_number: int,
         entry_id: str,
         source_players: Mapping[str, str] | None = None,
+        app_name_format: str = DEFAULT_APP_NAME_FORMAT,
     ) -> None:
         """Initialize entity with transport."""
         super().__init__()
         self.avr = avr
         self._entry_id = entry_id
         self._source_players = dict(source_players or {})
+        self._app_name_format = app_name_format
         self._mirror_entity_id: str | None = None
         self._zone_number = zone_number
         self._zone = avr.zones[zone_number]
@@ -230,6 +248,17 @@ class AnthemAVR(MediaPlayerEntity):
         for key, attr in MIRRORED_ATTRS.items():
             if (value := state.attributes.get(key)) is not None:
                 setattr(self, attr, value)
+        app_name = render_app_name(
+            self._app_name_format,
+            {
+                "format": self._zone.input_format or "",
+                "app": state.attributes.get(ATTR_APP_NAME) or "",
+                "source": self._zone.input_name or "",
+                "artist": state.attributes.get(ATTR_MEDIA_ARTIST) or "",
+            },
+        )
+        if app_name:
+            self._attr_app_name = app_name
         if picture := state.attributes.get(ATTR_ENTITY_PICTURE):
             self._attr_media_image_hash = _picture_hash(picture)
 
