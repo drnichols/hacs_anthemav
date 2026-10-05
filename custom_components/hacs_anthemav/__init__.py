@@ -69,6 +69,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> 
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Source player mappings are read at setup, so reload to apply changes.
+    entry.async_on_unload(entry.add_update_listener(_async_reload_on_update))
+
     @callback
     def close_avr(event: Event) -> None:
         avr.close()
@@ -78,6 +81,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> 
     )
 
     return True
+
+
+async def _async_reload_on_update(hass: HomeAssistant, entry: AnthemavConfigEntry) -> None:
+    """Reload the entry when its options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> bool:

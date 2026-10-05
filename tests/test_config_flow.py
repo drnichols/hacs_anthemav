@@ -165,3 +165,33 @@ async def test_reconfigure_cannot_connect(hass: HomeAssistant) -> None:
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_options_flow_saves_source_players(hass: HomeAssistant) -> None:
+    """Mappings are stored per input; cleared fields are dropped."""
+    from .test_init import mock_connection, setup_entry
+
+    entry, _ = await setup_entry(hass, mock_connection())
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+    assert {str(k) for k in result["data_schema"].schema} == {"HDMI 1", "HDMI 2"}
+
+    with patch("anthemav.Connection.create", AsyncMock(return_value=mock_connection())):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"HDMI 1": "media_player.lounge"}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options == {"source_players": {"HDMI 1": "media_player.lounge"}}
+
+
+async def test_options_flow_aborts_when_not_loaded(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="x", data={})
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "not_loaded"

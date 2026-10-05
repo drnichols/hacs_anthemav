@@ -39,6 +39,10 @@ Copy `custom_components/hacs_anthemav` into the `custom_components` folder of yo
 
 The receiver must be powered on during setup so its MAC address and model can be read. The MAC address is used as the unique ID, so the same receiver cannot be added twice.
 
+## Now playing from another media player
+
+Many inputs (e.g. an Apple TV) only tell the receiver the input name. To show real now-playing details and cover art, open the integration's **Configure** dialog and pick a media player for each input, such as `media_player.lounge` for `ATV`. While that input is selected, the receiver entity mirrors the title, artist, album, duration, position and artwork from that player. If the player is off, idle or unavailable, the entity shows the input name as before. This is display only; playback controls stay on the source player.
+
 ## Changing the receiver's address
 
 If the receiver's IP address changes, open the integration under **Settings → Devices & services**, choose the menu (⋮) and **Reconfigure**. The new address must belong to the same receiver (matched by MAC address). Adding the same receiver again at a new address also updates the stored address.

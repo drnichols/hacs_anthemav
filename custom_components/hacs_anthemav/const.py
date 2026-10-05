@@ -2,6 +2,7 @@
 
 ANTHEMAV_UPDATE_SIGNAL = "anthemav_update"
 
+CONF_SOURCE_PLAYERS = "source_players"
 DEFAULT_NAME = "Anthem AV (HACS)"
 DEFAULT_PORT = 14999
 DOMAIN = "hacs_anthemav"
