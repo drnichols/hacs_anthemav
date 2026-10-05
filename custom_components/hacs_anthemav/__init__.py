@@ -26,7 +26,7 @@ from .protocol import NotifyingAVR
 
 type AnthemavConfigEntry = ConfigEntry[anthemav.Connection]
 
-PLATFORMS = [Platform.MEDIA_PLAYER]
+PLATFORMS = [Platform.MEDIA_PLAYER, Platform.SENSOR]
 
 _LOGGER = logging.getLogger(__name__)
 
