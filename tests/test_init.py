@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_MODEL, CONF_PORT, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -26,6 +27,8 @@ def mock_connection() -> MagicMock:
     avr.protocol.connected = True
     avr.protocol.zones = {1: zone}
     avr.protocol.input_list = ["HDMI 1", "HDMI 2"]
+    avr.protocol.swversion = "1.2.3"
+    avr.protocol.hwversion = "A1"
     avr.protocol.wait_for_device_initialised = AsyncMock()
     return avr
 
@@ -92,3 +95,34 @@ async def test_failed_platform_unload_keeps_connection(hass: HomeAssistant) -> N
 
         assert not await async_unload_entry(hass, entry)
     avr.close.assert_not_called()
+
+
+def receiver_device(hass: HomeAssistant):
+    return dr.async_get(hass).async_get_device(identifiers={(DOMAIN, MAC)})
+
+
+async def test_device_reports_versions(hass: HomeAssistant) -> None:
+    await setup_entry(hass, mock_connection())
+
+    device = receiver_device(hass)
+    assert device.sw_version == "1.2.3"
+    assert device.hw_version == "A1"
+
+
+async def test_versions_arriving_after_setup_update_device(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    avr.protocol.swversion = "Unknown Version"
+    avr.protocol.hwversion = "Unknown Version"
+    _, create = await setup_entry(hass, avr)
+
+    device = receiver_device(hass)
+    assert device.sw_version is None
+    assert device.hw_version is None
+
+    avr.protocol.swversion = "1.2.3"
+    create.call_args.kwargs["update_callback"]("IDS1.2.3")
+    await hass.async_block_till_done()
+
+    device = receiver_device(hass)
+    assert device.sw_version == "1.2.3"
+    assert device.hw_version is None
