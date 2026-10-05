@@ -1,7 +1,9 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Re-configuration was successful",
+      "unique_id_mismatch": "The device at this address is a different receiver from the one originally configured"
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -9,6 +11,12 @@
     },
     "step": {
       "user": {
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "reconfigure": {
         "data": {
           "host": "Host",
           "port": "Port"

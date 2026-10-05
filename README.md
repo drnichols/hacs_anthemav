@@ -10,6 +10,7 @@ It is a packaged copy of the core [`anthemav`](https://www.home-assistant.io/int
 - Power on/off, volume, mute and source selection
 - Current input name and input format (shown as the media title and app name)
 - Local push: the receiver sends updates, nothing is polled
+- Entities show as unavailable while the receiver is disconnected, and recover automatically when it comes back
 - Zone 1 is the receiver device. Zones 2 and above appear as child devices of it.
 
 ## Requirements
@@ -37,6 +38,10 @@ Copy `custom_components/hacs_anthemav` into the `custom_components` folder of yo
 3. Enter the receiver's IP address or hostname. The port defaults to `14999`.
 
 The receiver must be powered on during setup so its MAC address and model can be read. The MAC address is used as the unique ID, so the same receiver cannot be added twice.
+
+## Changing the receiver's address
+
+If the receiver's IP address changes, open the integration under **Settings → Devices & services**, choose the menu (⋮) and **Reconfigure**. The new address must belong to the same receiver (matched by MAC address). Adding the same receiver again at a new address also updates the stored address.
 
 ## Troubleshooting
 

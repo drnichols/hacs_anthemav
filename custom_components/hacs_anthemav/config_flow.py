@@ -40,18 +40,10 @@ class AnthemAVConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    @override
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle the initial step."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA
-            )
-
-        errors = {}
-
+    async def _async_probe(
+        self, user_input: dict[str, Any]
+    ) -> tuple[dict[str, Any] | None, dict[str, str]]:
+        """Connect to the receiver and return its details, or form errors."""
         avr: Connection | None = None
         try:
             avr = await connect_device(user_input)
@@ -61,24 +53,75 @@ class AnthemAVConfigFlow(ConfigFlow, domain=DOMAIN):
                 user_input[CONF_HOST],
                 user_input[CONF_PORT],
             )
-            errors["base"] = "cannot_connect"
+            return None, {"base": "cannot_connect"}
         except DeviceError:
             _LOGGER.error(
                 "Couldn't receive device information from %s:%s",
                 user_input[CONF_HOST],
                 user_input[CONF_PORT],
             )
-            errors["base"] = "cannot_receive_deviceinfo"
+            return None, {"base": "cannot_receive_deviceinfo"}
         else:
-            user_input[CONF_MAC] = format_mac(avr.protocol.macaddress)
-            user_input[CONF_MODEL] = avr.protocol.model
-            await self.async_set_unique_id(user_input[CONF_MAC])
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(title=DEFAULT_NAME, data=user_input)
+            return {
+                CONF_MAC: format_mac(avr.protocol.macaddress),
+                CONF_MODEL: avr.protocol.model,
+            }, {}
         finally:
             if avr is not None:
                 avr.close()
 
+    @override
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the initial step."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            details, errors = await self._async_probe(user_input)
+            if details is not None:
+                await self.async_set_unique_id(details[CONF_MAC])
+                # Adding a receiver that already exists with a new address
+                # updates the stored address instead of failing.
+                self._abort_if_unique_id_configured(
+                    updates={
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PORT: user_input[CONF_PORT],
+                    }
+                )
+                return self.async_create_entry(
+                    title=DEFAULT_NAME, data={**user_input, **details}
+                )
+
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_DATA_SCHEMA, user_input
+            ),
+            errors=errors,
+        )
+
+    @override
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the host or port of an existing receiver."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            details, errors = await self._async_probe(user_input)
+            if details is not None:
+                await self.async_set_unique_id(details[CONF_MAC])
+                self._abort_if_unique_id_mismatch()
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={**user_input, **details}
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_DATA_SCHEMA, user_input or entry.data
+            ),
+            errors=errors,
         )

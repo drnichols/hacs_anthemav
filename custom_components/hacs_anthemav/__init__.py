@@ -21,6 +21,7 @@ from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import ANTHEMAV_UPDATE_SIGNAL, DEVICE_TIMEOUT_SECONDS, DOMAIN, MANUFACTURER
+from .protocol import NotifyingAVR
 
 type AnthemavConfigEntry = ConfigEntry[anthemav.Connection]
 
@@ -43,6 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) -> 
             host=entry.data[CONF_HOST],
             port=entry.data[CONF_PORT],
             update_callback=async_anthemav_update_callback,
+            protocol_class=NotifyingAVR,
         )
 
         # Wait for the zones to be initialised based on the model
@@ -82,8 +84,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: AnthemavConfigEntry) ->
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    avr = entry.runtime_data
-    _LOGGER.debug("Close avr connection")
-    avr.close()
+    # Only drop the connection once the entities are gone, otherwise a failed
+    # unload would leave live entities attached to a closed connection.
+    if unload_ok:
+        _LOGGER.debug("Close avr connection")
+        entry.runtime_data.close()
 
     return unload_ok

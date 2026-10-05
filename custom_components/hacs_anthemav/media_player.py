@@ -3,8 +3,6 @@
 import logging
 from typing import override
 
-from anthemav.protocol import AVR
-
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
@@ -20,6 +18,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AnthemavConfigEntry
 from .const import ANTHEMAV_UPDATE_SIGNAL, DOMAIN, MANUFACTURER
+from .protocol import NotifyingAVR
 
 _LOGGER = logging.getLogger(__name__)
 VOLUME_STEP = 0.01
@@ -72,7 +71,7 @@ class AnthemAVR(MediaPlayerEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        avr: AVR,
+        avr: NotifyingAVR,
         name: str,
         mac_address: str,
         model: str,
@@ -131,6 +130,7 @@ class AnthemAVR(MediaPlayerEntity):
 
     def set_states(self) -> None:
         """Set all the states from the device to the entity."""
+        self._attr_available = self.avr.connected
         self._attr_state = (
             MediaPlayerState.ON if self._zone.power else MediaPlayerState.OFF
         )
