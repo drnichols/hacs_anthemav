@@ -9,6 +9,10 @@ It is a packaged copy of the core [`anthemav`](https://www.home-assistant.io/int
 - One `media_player` entity per zone the receiver reports
 - Power on/off, volume, mute and source selection
 - Current input name and input format (shown as the media title and app name)
+- Sound mode selection on zone 1, using the receiver's audio listening modes (e.g. AnthemLogic Cinema, Dolby Surround)
+- Diagnostic sensors for the signal on zone 1: video input resolution, audio input format, channels, name, rate, bitrate, sample rate and Dolby dialog normalization. Horizontal and vertical resolution in pixels are available but disabled by default. Sensors read as unknown while the receiver is off.
+- Settings on the receiver device: Dolby dynamic range, **Anthem Room Correction** on/off, and (x20 models only) front panel brightness and standby IP control
+- Receiver software and hardware versions shown on the device
 - Local push: the receiver sends updates, nothing is polled
 - Entities show as unavailable while the receiver is disconnected, and recover automatically when it comes back
 - Zone 1 is the receiver device. Zones 2 and above appear as child devices of it.
@@ -38,6 +42,20 @@ Copy `custom_components/hacs_anthemav` into the `custom_components` folder of yo
 3. Enter the receiver's IP address or hostname. The port defaults to `14999`.
 
 The receiver must be powered on during setup so its MAC address and model can be read. The MAC address is used as the unique ID, so the same receiver cannot be added twice.
+
+## Model support
+
+The `anthemav` library supports three receiver families, and not every feature applies to all of them:
+
+| Feature | MRX / AVM x20 | MRX / AVM x40 (540, 740, 1140, ...) | MDX / MDA |
+|---|---|---|---|
+| Sound mode, input sensors, Dolby dynamic range | Yes | Yes | No |
+| Anthem Room Correction switch | Yes | Yes, for the current input | No |
+| Front panel brightness, standby IP control | Yes | No | No |
+
+- On x40 models ARC is stored per input, so the switch changes the setting for the input that is currently selected and shows as unknown until the receiver reports it.
+- The receiver ignores zone settings (Dolby dynamic range, and ARC on x20 models) while zone 1 is powered off, so changes made then have no effect.
+- Front panel brightness and standby IP control are not offered on x40 models because the library does not support them there.
 
 ## Now playing from another media player
 
