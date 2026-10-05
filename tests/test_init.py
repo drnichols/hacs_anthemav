@@ -27,6 +27,12 @@ def mock_connection() -> MagicMock:
     avr.protocol.connected = True
     avr.protocol.zones = {1: zone}
     avr.protocol.input_list = ["HDMI 1", "HDMI 2"]
+    avr.protocol.support_arc = True
+    avr.protocol.has_x20_settings = True
+    avr.protocol.arc = True
+    avr.protocol.standby_control = False
+    avr.protocol.dolby_dynamic_range = "1"
+    avr.protocol.panel_brightness = "2"
     avr.protocol.support_audio_listening_mode = True
     avr.protocol.audio_listening_mode = "02"
     avr.protocol.audio_listening_mode_list = ["None", "AnthemLogic Cinema", "AnthemLogic Music"]
