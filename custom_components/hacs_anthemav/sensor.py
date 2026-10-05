@@ -113,13 +113,7 @@ async def async_setup_entry(
 
     mac_address = config_entry.data[CONF_MAC]
     device_info = zone_device_info(
-        hass,
-        avr,
-        config_entry.title,
-        mac_address,
-        config_entry.data[CONF_MODEL],
-        1,
-        config_entry.entry_id,
+        avr, config_entry.title, mac_address, config_entry.data[CONF_MODEL], 1
     )
     async_add_entities(
         AnthemavSensor(avr, config_entry.entry_id, mac_address, device_info, description)

@@ -2,8 +2,7 @@
 
 from typing import override
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
@@ -28,18 +27,17 @@ def device_versions(avr: NotifyingAVR) -> dict[str, str | None]:
 
 
 def zone_device_info(
-    hass: HomeAssistant,
     avr: NotifyingAVR,
     name: str,
     mac_address: str,
     model: str,
     zone_number: int,
-    entry_id: str,
 ) -> DeviceInfo:
     """Build the device info for a zone.
 
     Zone 1 is the physical receiver that owns the network MAC; higher zones are
-    via_device children and carry no connection.
+    via_device children and carry no connection. The receiver device is
+    registered before the platforms load, so the link resolves.
     """
     if zone_number > 1:
         return DeviceInfo(
@@ -47,9 +45,7 @@ def zone_device_info(
             name=f"Zone {zone_number}",
             manufacturer=MANUFACTURER,
             model=model,
-            via_device_id=dr.async_get(hass).async_get_device_id_by_identifier(
-                (DOMAIN, mac_address), config_entry_id=entry_id
-            ),
+            via_device=(DOMAIN, mac_address),
         )
     return DeviceInfo(
         identifiers={(DOMAIN, mac_address)},

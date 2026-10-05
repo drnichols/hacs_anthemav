@@ -220,4 +220,9 @@ class AnthemAVOptionsFlow(OptionsFlow):
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(schema, current),
             errors=errors,
+            # The help text names these as literal {placeholders}; passing them
+            # as values stops the frontend treating them as translation variables.
+            description_placeholders={
+                name: f"{{{name}}}" for name in ("format", "app", "source", "artist")
+            },
         )

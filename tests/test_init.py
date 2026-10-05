@@ -136,3 +136,21 @@ async def test_versions_arriving_after_setup_update_device(hass: HomeAssistant) 
     device = receiver_device(hass)
     assert device.sw_version == "1.2.3"
     assert device.hw_version is None
+
+
+async def test_higher_zone_is_child_of_receiver(hass: HomeAssistant) -> None:
+    avr = mock_connection()
+    zone2 = MagicMock()
+    zone2.power = False
+    zone2.mute = False
+    zone2.volume_as_percentage = 0.2
+    zone2.input_name = "HDMI 2"
+    zone2.input_format = ""
+    avr.protocol.zones[2] = zone2
+    await setup_entry(hass, avr)
+
+    registry = er.async_get(hass)
+    entity = registry.async_get_entity_id("media_player", DOMAIN, f"{MAC}_2")
+    assert entity is not None
+    zone_device = dr.async_get(hass).async_get(registry.async_get(entity).device_id)
+    assert zone_device.via_device_id == receiver_device(hass).id
