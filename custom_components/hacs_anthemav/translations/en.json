@@ -25,6 +25,20 @@
       }
     }
   },
+  "entity": {
+    "sensor": {
+      "video_input_resolution": { "name": "Video input resolution" },
+      "audio_input_format": { "name": "Audio input format" },
+      "audio_input_channels": { "name": "Audio input channels" },
+      "audio_input_name": { "name": "Audio input name" },
+      "audio_input_rate": { "name": "Audio input rate" },
+      "audio_input_bitrate": { "name": "Audio input bitrate" },
+      "audio_input_samplerate": { "name": "Audio input sample rate" },
+      "dolby_dialog_normalization": { "name": "Dolby dialog normalization" },
+      "horizontal_resolution": { "name": "Horizontal resolution" },
+      "vertical_resolution": { "name": "Vertical resolution" }
+    }
+  },
   "options": {
     "abort": {
       "not_loaded": "The receiver must be connected to change these options"
