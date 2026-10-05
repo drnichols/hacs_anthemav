@@ -26,6 +26,29 @@
     }
   },
   "entity": {
+    "select": {
+      "dolby_dynamic_range": {
+        "name": "Dolby dynamic range",
+        "state": {
+          "normal": "Normal",
+          "reduced": "Reduced",
+          "late_night": "Late night"
+        }
+      },
+      "panel_brightness": {
+        "name": "Front panel brightness",
+        "state": {
+          "off": "Off",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      }
+    },
+    "switch": {
+      "arc": { "name": "Anthem Room Correction" },
+      "standby_control": { "name": "Standby IP control" }
+    },
     "sensor": {
       "video_input_resolution": { "name": "Video input resolution" },
       "audio_input_format": { "name": "Audio input format" },

@@ -25,6 +25,14 @@ async def test_connection_lost_notifies_and_marks_disconnected() -> None:
     callback.assert_called_once_with("connection_lost")
 
 
+async def test_x20_settings_only_on_x20_models() -> None:
+    avr = NotifyingAVR(loop=asyncio.get_running_loop())
+    avr.transport = MagicMock()
+    for model, expected in (("MRX 520", True), ("MRX 540", False), ("MDX 8", False)):
+        avr.set_model_command(model)
+        assert avr.has_x20_settings is expected, model
+
+
 async def test_connection_made_notifies() -> None:
     callback = MagicMock()
     avr = NotifyingAVR(

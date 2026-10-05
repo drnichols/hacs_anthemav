@@ -2,7 +2,7 @@
 
 from typing import override
 
-from anthemav.protocol import AVR
+from anthemav.protocol import AVR, MODEL_X20
 
 
 class NotifyingAVR(AVR):
@@ -16,6 +16,16 @@ class NotifyingAVR(AVR):
     def connected(self) -> bool:
         """Return True while there is a live connection to the receiver."""
         return self.transport is not None
+
+    @property
+    def has_x20_settings(self) -> bool:
+        """Return True for x20 receivers, the only series the library can configure.
+
+        Front panel brightness and standby IP control are only queried and
+        driven by the library on x20 models. The x40 equivalents (e.g. GCFPB)
+        are not wired up in its brightness property, so they are not offered.
+        """
+        return self._model_series == MODEL_X20
 
     def _notify(self, message: str) -> None:
         if self._update_callback:
